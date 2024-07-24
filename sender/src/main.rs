@@ -1,6 +1,7 @@
 use std::env;
 use std::io::{self, Write};
 
+mod crc32;
 mod hamming;
 
 fn main() {
@@ -19,11 +20,7 @@ fn main() {
 
         match choice {
             "1" => run_hamming(),
-            "2" => {
-                eprintln!("CRC32 functionality not yet implemented.");
-                // Placeholder for CRC32 function call
-                // run_crc32();
-            }
+            "2" => run_crc32(),
             _ => {
                 eprintln!("Invalid choice: {}. Please enter 1 or 2.", choice);
             }
@@ -33,11 +30,7 @@ fn main() {
 
         match choice.as_str() {
             "hamming" => run_hamming(),
-            "crc32" => {
-                eprintln!("CRC32 functionality not yet implemented.");
-                // Placeholder for CRC32 function call
-                // run_crc32();
-            }
+            "crc32" => run_crc32(),
             _ => {
                 eprintln!("Invalid choice: {}. Use 'hamming' or 'crc32'.", choice);
             }
@@ -45,10 +38,34 @@ fn main() {
     }
 }
 
+fn run_crc32() {
+    use crc32::calculate_crc;
+    env::set_var("RUST_BACKTRACE", "1");
+
+    // IEEE 802: x^{32} + x^{26} + x^{23} + x^{22} + x^{16} + x^{12} + x^{11} + x^{10} + x^8 + x^7 + x^5 + x^4 + x^2 + x^1 + 1
+    // Page 215 https://csc-knu.github.io/sys-prog/books/Andrew%20S.%20Tanenbaum%20-%20Computer%20Networks.pdf
+    let generator = "100000100110000010001110110110111"; // Check the crc23.rs for examples
+
+    print!("Enter the binary message: ");
+    io::stdout().flush().unwrap();
+    let mut frame = String::new();
+    io::stdin().read_line(&mut frame).unwrap();
+    let frame = frame.trim();
+
+    if !validate_is_binary(frame) {
+        println!("The message is not binary.");
+        return;
+    }
+
+    let crc = calculate_crc(frame, generator);
+
+    println!("Transmitted message: {}", crc);
+}
+
 fn run_hamming() {
     use hamming::*;
-
     env::set_var("RUST_BACKTRACE", "1");
+
     print!(">> (n): ");
     io::stdout().flush().unwrap();
     let mut n = String::new();
