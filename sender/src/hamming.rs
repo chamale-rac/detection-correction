@@ -9,10 +9,6 @@ pub fn validate_redundancy_bits(n: usize, r: usize) -> bool {
     power_of_two >= n_big + r_big + BigUint::one()
 }
 
-pub fn validate_is_binary(message: &str) -> bool {
-    message.chars().all(|c| c == '0' || c == '1')
-}
-
 pub fn generate_hamming_code(message: &str, r: usize) -> String {
     let total_bits = message.len() + r;
     let mut hamming_code = vec!['0'; total_bits];

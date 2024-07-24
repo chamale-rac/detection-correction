@@ -98,3 +98,7 @@ fn run_hamming() {
 
     println!("The hamming code is: {}", complete_hamming_code);
 }
+
+fn validate_is_binary(message: &str) -> bool {
+    message.chars().all(|c| c == '0' || c == '1')
+}
