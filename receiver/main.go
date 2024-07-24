@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	crc32 "receiver/crc32"     // Adjust the import path as necessary
 	hamming "receiver/hamming" // Adjust the import path as necessary
 	"strconv"
 	"strings"
@@ -18,7 +19,7 @@ func main() {
 			runHamming(bufio.NewReader(os.Stdin))
 			return
 		case "crc32":
-			fmt.Println("CRC32 functionality not yet implemented.")
+			runCRC32(bufio.NewReader(os.Stdin))
 			return
 		default:
 			fmt.Printf("Unknown function: %s\n", arg)
@@ -41,9 +42,31 @@ func main() {
 	case 1:
 		runHamming(reader)
 	case 2:
-		fmt.Println("CRC32 functionality not yet implemented.")
+		runCRC32(reader)
 	default:
 		fmt.Println("Invalid choice. Please enter 1 or 2.")
+	}
+}
+
+func runCRC32(reader *bufio.Reader) {
+	fmt.Print("Enter the received message: ")
+	receivedFrame, _ := reader.ReadString('\n')
+	receivedFrame = strings.TrimSpace(receivedFrame)
+
+	// IEEE 802: x^{32} + x^{26} + x^{23} + x^{22} + x^{16} + x^{12} + x^{11} + x^{10} + x^8 + x^7 + x^5 + x^4 + x^2 + x^1 + 1
+	// Page 215 https://csc-knu.github.io/sys-prog/books/Andrew%20S.%20Tanenbaum%20-%20Computer%20Networks.pdf
+	generator := "100000100110000010001110110110111"
+	// IMPORTANT: CHECK THIS generator MATCHES THE one ENCODER uses
+
+	if !validateIsBinary(receivedFrame) {
+		fmt.Println("Invalid input. Please enter a binary string.")
+		return
+	}
+
+	if crc32.VerifyCRC(receivedFrame, generator) {
+		fmt.Println("Frame is correct.")
+	} else {
+		fmt.Println("Frame is incorrect.")
 	}
 }
 

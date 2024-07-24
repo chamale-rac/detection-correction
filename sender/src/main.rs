@@ -46,6 +46,8 @@ fn run_crc32() {
     // Page 215 https://csc-knu.github.io/sys-prog/books/Andrew%20S.%20Tanenbaum%20-%20Computer%20Networks.pdf
     let generator = "100000100110000010001110110110111"; // Check the crc23.rs for examples
 
+    // IMPORTANT: CHECK THIS generator MATCHES THE one DECODER uses
+
     print!("Enter the binary message: ");
     io::stdout().flush().unwrap();
     let mut frame = String::new();
