@@ -1,67 +1,71 @@
 package hamming
 
 import (
+	"errors"
 	"fmt"
-	"math"
 	"math/big"
-	"strconv"
 )
 
-func arrToBinary(arr []int) string {
-	binaryStr := ""
-	for _, val := range arr {
-		binaryStr += strconv.Itoa(val)
-	}
-	return binaryStr
-}
-
-func binaryToDecimal(binary string) int {
-	decimal, _ := strconv.ParseInt(binary, 2, 0)
-	return int(decimal)
-}
-
+// DecodeHamming decodes a Hamming encoded message
 // DecodeHamming decodes a Hamming encoded message
 func DecodeHamming(encoded string, n, m, batchPos int) (string, error) {
-	r := n - m
-	totalBits := len(encoded)
-	decodedMessage := make([]rune, m)
+	// n: total length of the encoded message
+	// m: length of the data part
+	// batchPos: position in the batch (used to get specific part if encoded is a batch)
 
-	paritiesArr := []int{}
-
-	for i := 0; i < r; i++ { // Go through each redundancy bit
-		parityPos := int(math.Pow(2, float64(i))) - 1
-		parity := 0
-		for j := parityPos; j < totalBits; j += 2 * (parityPos + 1) {
-			for k := 0; k < parityPos+1 && j+k < totalBits; k++ { // Going using blocks... 1=[0, 1, 0 ...], 2=[0, 0, 1, 1, 0, 0 ...], 4=[0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0 ...]
-				parity ^= int(encoded[j+k] - '0')
-			}
-		}
-		paritiesArr = append(paritiesArr, parity)
+	// If the length of encoded message does not match the expected length, return an error
+	if len(encoded) != n {
+		return "", errors.New("invalid encoded message length")
 	}
 
-	// Using the parities Arr to correct the encoded message
-	// Based on the parities Arr, we can determine the position of the error
-	// By converting the parities Arr to a binary number, we can determine
-	errorBinary := arrToBinary(paritiesArr)
-	errorPos := binaryToDecimal(errorBinary)
-
-	if errorPos != 0 {
-		fmt.Println("Error detected at position:", errorPos+batchPos)
-		fmt.Println("Correcting the error...")
-		encoded = encoded[:errorPos-1] + string(flipBit(rune(encoded[errorPos-1]))) + encoded[errorPos:]
+	// Calculate the number of parity bits (p)
+	// Number of parity bits p satisfies the equation: 2^p >= m + p + 1
+	p := 0
+	for (1 << p) < m+p+1 {
+		p++
 	}
 
-	j := 0
-	for i := 1; i <= totalBits; i++ {
-		if i&(i-1) != 0 { // Extract only the data bits
-			decodedMessage[j] = rune(encoded[i-1])
-			j++
+	// Find the positions of the parity bits
+	parityPositions := make([]int, p)
+	for i := 0; i < p; i++ {
+		parityPositions[i] = (1 << i) - 1
+	}
+
+	// Calculate the parity bits from the encoded message
+	syndrome := 0
+	for i := 0; i < n; i++ {
+		if encoded[i] == '1' {
+			syndrome ^= (i + 1)
 		}
 	}
 
-	return string(decodedMessage), nil
+	// If syndrome is not zero, there is an error at the position `syndrome - 1`
+	if syndrome > 0 {
+		errorPos := syndrome - 1
+		if errorPos < n {
+			// Print the error position errorPos + batchPos
+			fmt.Printf("Error at position %d\n", errorPos+batchPos+1)
+			encoded = encoded[:errorPos] + string(flipBit(rune(encoded[errorPos]))) + encoded[errorPos+1:]
+		} else {
+			return "", errors.New("syndrome indicates an error position outside the encoded message")
+		}
+	}
+
+	// Extract the original data bits
+	originalData := make([]rune, 0, m)
+	parityIndex := 0
+	for i := 0; i < n; i++ {
+		if parityIndex < len(parityPositions) && i == parityPositions[parityIndex] {
+			parityIndex++
+		} else {
+			originalData = append(originalData, rune(encoded[i]))
+		}
+	}
+
+	return string(originalData), nil
 }
 
+// flipBit flips a bit from '0' to '1' or '1' to '0'
 func flipBit(bit rune) rune {
 	if bit == '0' {
 		return '1'
