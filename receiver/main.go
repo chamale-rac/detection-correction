@@ -97,7 +97,7 @@ func runHamming(reader *bufio.Reader) {
 
 	// Decode in batches of n bits
 	for i := 0; i < len(encodedMessage); i += n {
-		decodedMessage, err := hamming.DecodeHamming(encodedMessage[i:i+n], n, m)
+		decodedMessage, err := hamming.DecodeHamming(encodedMessage[i:i+n], n, m, i)
 		if err != nil {
 			fmt.Println("Error:", err)
 			return // Exit if there is an error

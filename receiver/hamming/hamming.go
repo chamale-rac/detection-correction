@@ -21,7 +21,7 @@ func binaryToDecimal(binary string) int {
 }
 
 // DecodeHamming decodes a Hamming encoded message
-func DecodeHamming(encoded string, n, m int) (string, error) {
+func DecodeHamming(encoded string, n, m, batchPos int) (string, error) {
 	r := n - m
 	totalBits := len(encoded)
 	decodedMessage := make([]rune, m)
@@ -46,7 +46,7 @@ func DecodeHamming(encoded string, n, m int) (string, error) {
 	errorPos := binaryToDecimal(errorBinary)
 
 	if errorPos != 0 {
-		fmt.Println("Error detected at position:", errorPos)
+		fmt.Println("Error detected at position:", errorPos+batchPos)
 		fmt.Println("Correcting the error...")
 		encoded = encoded[:errorPos-1] + string(flipBit(rune(encoded[errorPos-1]))) + encoded[errorPos:]
 	}
