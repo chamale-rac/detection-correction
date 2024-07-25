@@ -63,11 +63,22 @@ func runCRC32(reader *bufio.Reader) {
 		return
 	}
 
-	if crc32.VerifyCRC(receivedFrame, generator) {
+	success, message := crc32.VerifyCRCAndReturnMessage(receivedFrame, generator)
+
+	if success {
 		fmt.Println("Frame is correct.")
+		fmt.Println("The original message is:", message)
 	} else {
 		fmt.Println("Frame is incorrect.")
 	}
+
+	// fmt.Println("The original message is:", message)
+
+	// if crc32.VerifyCRC(receivedFrame, generator) {
+	// 	fmt.Println("Frame is correct.")
+	// } else {
+	// 	fmt.Println("Frame is incorrect.")
+	// }
 }
 
 func runHamming(reader *bufio.Reader) {

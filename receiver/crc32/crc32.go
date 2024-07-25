@@ -14,17 +14,17 @@ func binaryStringToIntArray(binary string) []int {
 }
 
 // Function to convert an integer array to a binary string
-// func intArrayToBinaryString(arr []int) string {
-// 	binary := ""
-// 	for _, val := range arr {
-// 		if val == 1 {
-// 			binary += "1"
-// 		} else {
-// 			binary += "0"
-// 		}
-// 	}
-// 	return binary
-// }
+func intArrayToBinaryString(arr []int) string {
+	binary := ""
+	for _, val := range arr {
+		if val == 1 {
+			binary += "1"
+		} else {
+			binary += "0"
+		}
+	}
+	return binary
+}
 
 // Function to perform modulo-2 division and return the remainder
 // The same function we use when encoding
@@ -59,5 +59,29 @@ func VerifyCRC(receivedFrame, generator string) bool {
 	return true
 }
 
+func VerifyCRCAndReturnMessage(receivedFrame, generator string) (bool, string) {
+    frameBits := binaryStringToIntArray(receivedFrame)
+    generatorBits := binaryStringToIntArray(generator)
+
+    // Perform modulo-2 division
+    remainder := mod2Division(frameBits, generatorBits)
+
+    // Check if remainder is all zeros
+    for _, bit := range remainder {
+        if bit != 0 {
+            return false, ""
+        }
+    }
+
+    // Assuming CRC is at the end and its length is len(generator) - 1
+    originalMessageBits := frameBits[:len(frameBits)-len(generator)+1]
+
+    // Convert the original message bits back to a binary string
+    originalMessage := intArrayToBinaryString(originalMessageBits)
+
+    return true, originalMessage
+}
+
 // Every concept get from https://csc-knu.github.io/sys-prog/books/Andrew%20S.%20Tanenbaum%20-%20Computer%20Networks.pdf
 // Pages 212-215 Page 212
+
