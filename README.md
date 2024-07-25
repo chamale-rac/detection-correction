@@ -1,6 +1,6 @@
 # Error Detection and Correction
 
-> ⚠️ Lab report (First Part): [submissions\redes-lab2-1ra.pdf](submissions\redes-lab2-1ra.pdf)
+> ⚠️ Lab report (First Part): [submissions/redes-lab2-1ra.pdf](submissions/redes-lab2-1ra.pdf)
 
 <p align="center">
   <br>
