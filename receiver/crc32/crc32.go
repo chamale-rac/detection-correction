@@ -60,28 +60,31 @@ func VerifyCRC(receivedFrame, generator string) bool {
 }
 
 func VerifyCRCAndReturnMessage(receivedFrame, generator string) (bool, string) {
-    frameBits := binaryStringToIntArray(receivedFrame)
-    generatorBits := binaryStringToIntArray(generator)
+	frameBits := binaryStringToIntArray(receivedFrame)
+	generatorBits := binaryStringToIntArray(generator)
 
-    // Perform modulo-2 division
-    remainder := mod2Division(frameBits, generatorBits)
+	// Perform modulo-2 division
+	remainder := mod2Division(frameBits, generatorBits)
 
-    // Check if remainder is all zeros
-    for _, bit := range remainder {
-        if bit != 0 {
-            return false, ""
-        }
-    }
+	// Check if remainder is all zeros
+	for _, bit := range remainder {
+		if bit != 0 {
+			return false, "❌ Error decoding message: CRC check failed. The frame contains errors."
+		}
+	}
 
-    // Assuming CRC is at the end and its length is len(generator) - 1
-    originalMessageBits := frameBits[:len(frameBits)-len(generator)+1]
+	if len(generator) > len(frameBits) {
+		return false, "❌ Error decoding message: Generator length is greater than the frame length.\nCheck you are using CRC32 and not other algorithms."
+	}
 
-    // Convert the original message bits back to a binary string
-    originalMessage := intArrayToBinaryString(originalMessageBits)
+	// Assuming CRC is at the end and its length is len(generator) - 1
+	originalMessageBits := frameBits[:len(frameBits)-len(generator)+1]
 
-    return true, originalMessage
+	// Convert the original message bits back to a binary string
+	originalMessage := intArrayToBinaryString(originalMessageBits)
+
+	return true, originalMessage
 }
 
 // Every concept get from https://csc-knu.github.io/sys-prog/books/Andrew%20S.%20Tanenbaum%20-%20Computer%20Networks.pdf
 // Pages 212-215 Page 212
-
