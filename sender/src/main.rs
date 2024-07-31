@@ -1,10 +1,11 @@
+use csv::Writer;
 use rand::Rng;
 use std::env;
 use std::io::{self, Write};
 use std::net::TcpStream;
-
 mod crc32;
 mod hamming;
+mod test;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -35,11 +36,17 @@ fn main() {
         match choice.as_str() {
             "hamming" => run_hamming(),
             "crc32" => run_crc32(),
+            "crc32_test" => hamming_test(),
             _ => {
                 eprintln!("Invalid choice: {}. Use 'hamming' or 'crc32'.", choice);
             }
         }
     }
+}
+
+fn hamming_test() {
+    use test::generate_test_cases;
+    generate_test_cases();
 }
 
 fn run_crc32() {
