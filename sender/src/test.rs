@@ -14,25 +14,34 @@ pub fn generate_test_cases() {
         .create(true)
         .write(true)
         .open(file_path)
-        .unwrap();
+        .expect("Failed to open file");
 
     let mut wtr = Writer::from_writer(file);
 
     println!("Automated Test Started...");
 
-    let error_rates = [1, 2, 5, 10];
+    let error_rates = [0.1, 1.0, 2.0, 3.0, 4.0, 5.0];
+    let bit_lengths = (1..=10).map(|x| 2_usize.pow(x)).collect::<Vec<_>>(); // 2,4,8,16,32,64
 
-    wtr.write_record(&["Error Rate", "Length", "Original", "Encoded", "Noisy"])
-        .unwrap();
+    wtr.write_record(&[
+        "Error Rate",
+        "Length",
+        "Original",
+        "Encoded",
+        "Noisy",
+        "Has Errors",
+    ])
+    .expect("Failed to write header");
 
     for &error_rate in &error_rates {
-        let mut bits = 4; // Reset bits for each error rate
-        while bits <= 64 {
-            let message = generate_random_message(bits);
+        for &length in &bit_lengths {
+            let message = generate_random_message(length);
+            println!("Length: {}", message.len());
+
             let binary_message = encode_message(&message);
             let generator = "100000100110000010001110110110111"; // CRC32 generator polynomial
             let crc_message = calculate_crc(&binary_message, generator);
-            let noisy_message = apply_noise(&crc_message, error_rate as f64 / 100.0);
+            let (noisy_message, has_errors) = apply_noise(&crc_message, error_rate as f64 / 100.0); // Adjust error rate to fraction
 
             wtr.write_record(&[
                 &error_rate.to_string(),
@@ -40,14 +49,13 @@ pub fn generate_test_cases() {
                 &message,
                 &crc_message,
                 &noisy_message, // What the receiver will get
+                &has_errors.to_string(),
             ])
-            .unwrap();
-
-            bits += 4;
+            .expect("Failed to write record");
         }
     }
 
-    wtr.flush().unwrap();
+    wtr.flush().expect("Failed to flush writer");
 
     println!("Automated Test Completed. Results saved to {}.", file_path);
 }
@@ -61,26 +69,17 @@ fn encode_message(message: &str) -> String {
         .concat()
 }
 
-// Noise Layer: Apply noise to the binary message
-fn apply_noise(binary_message: &str, error_rate: f64) -> String {
-    let mut rng = rand::thread_rng();
-    binary_message
-        .chars()
-        .enumerate() // Add enumerate to get the position
-        .map(|(pos, bit)| {
-            if rng.gen::<f64>() < error_rate / 100.0 {
-                if bit == '0' {
-                    println!("Error introduced at position {}, flipped 0 to 1", pos);
-                    '1'
-                } else {
-                    println!("Error introduced at position {}, flipped 1 to 0", pos);
-                    '0'
-                }
-            } else {
-                bit
-            }
-        })
-        .collect()
+// Modify the apply_noise function to return a tuple (noisy_message, has_errors)
+fn apply_noise(message: &str, error_rate: f64) -> (String, bool) {
+    let mut noisy_message = message.to_string();
+    let mut has_errors = false;
+    for i in 0..message.len() {
+        if rand::random::<f64>() < error_rate {
+            noisy_message.replace_range(i..=i, if &message[i..=i] == "0" { "1" } else { "0" });
+            has_errors = true;
+        }
+    }
+    (noisy_message, has_errors)
 }
 
 fn get_error_rate() -> f64 {
