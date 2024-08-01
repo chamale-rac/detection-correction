@@ -40,7 +40,7 @@ func main() {
 
     // Write the header to the output CSV file
     writer := csv.NewWriter(outputFile)
-    writer.Write([]string{"Error Rate", "Length", "Errors", "Precision", "Detected Errors"})
+    writer.Write([]string{"Error Rate", "Length", "Errors", "Precision", "Detected Errors", "Original Message", "Decoded Message"})
 
     for i, record := range records[1:] { 
         if len(record) != 6 {
@@ -56,7 +56,7 @@ func main() {
 
 	    var finalDecodedBinaryMessage string
         var detectedErrors int // Errors the hamming code detected
-        var n, m int = 7,4
+        var n, m int = 15,11
 
         for i := 0; i < len(noisy); i += n {
             if i+n > len(noisy) {
@@ -75,17 +75,14 @@ func main() {
             finalDecodedBinaryMessage += decodedBinaryMessage
         }
 
-           var decodedMessage string = decodeMessage(finalDecodedBinaryMessage) // Decoded message (ASCII)
+        var decodedMessage string = decodeMessage(finalDecodedBinaryMessage) // Decoded message (ASCII)
 
-        var errorCount int = countErrors(original, decodedMessage)
+        var errorCount int = countErrors(original, decodedMessage) // we determine how far off the decoded message is from the original message
 
-        // Calculate total errors
-        var totalErrors int = errorCount + detectedErrors
+        var precision float64 = 1 - float64(errorCount) / float64(len(original)) // we determine the precision of the decoded message
 
-        // Calculate precision using total errors
-        var precision float64 = 1 - (float64(totalErrors) / float64(len(original)))
 
-        writer.Write([]string{rate, length, fmt.Sprintf("%d", errorCount), fmt.Sprintf("%.4f", precision), fmt.Sprintf("%d", detectedErrors)})
+        writer.Write([]string{rate, length, fmt.Sprintf("%d", errorCount), fmt.Sprintf("%.4f", precision), fmt.Sprintf("%d", detectedErrors), original, decodedMessage})
     }
 
     writer.Flush()
@@ -108,15 +105,18 @@ func countErrors(original, decoded string) int {
 
 // Decode message from binary ASCII
 func decodeMessage(binaryMessage string) string {
-	var message string
-	for i := 0; i < len(binaryMessage); i += 8 {
-		binaryChar := binaryMessage[i : i+8]
-		charCode, _ := strconv.ParseInt(binaryChar, 2, 64)
-		message += string(charCode)
-	}
-	return message
+    var message string
+    for i := 0; i < len(binaryMessage); i += 8 {
+        end := i + 8
+        if end > len(binaryMessage) {
+            end = len(binaryMessage)
+        }
+        binaryChar := binaryMessage[i:end]
+        charCode, _ := strconv.ParseInt(binaryChar, 2, 64)
+        message += string(charCode)
+    }
+    return message
 }
-
 // Calculate the number of errors between the original and decoded messages
 func calculateErrors(original, decoded string) int {
 	errors := 0

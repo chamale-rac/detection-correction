@@ -79,7 +79,18 @@ pub fn generate_hamming_test_cases() {
     println!("Automated Test Started...");
 
     let error_rates = [0.1, 0.2, 0.3, 0.4, 0.5];
-    let bit_lengths = (1..=10).map(|x| 2_usize.pow(x)).collect::<Vec<_>>(); // 2,4,8,16,32,64
+    let words = [
+        "apple",
+        "banana",
+        "cherry",
+        "grapes",
+        "kiwifruit",
+        "pineapple",
+        "blueberry",
+        "blackberry",
+        "dragon fruit",
+        "passion fruit",
+    ];
 
     wtr.write_record(&[
         "Error Rate",
@@ -91,12 +102,13 @@ pub fn generate_hamming_test_cases() {
     ])
     .expect("Failed to write header");
 
-    let n = 7; // Number of parity bits
-    let m = 4; // Number of data bits
+    let n = 15; // Number of parity bits
+    let m = 11; // Number of data bits
 
     for &error_rate in &error_rates {
-        for &length in &bit_lengths {
-            let message = generate_random_message(length);
+        println!("Error Rate: {}", error_rate);
+        for &word in &words {
+            let message = word.to_string();
             let binary_message = encode_message(&message);
 
             let padded_binary_message = if binary_message.len() % m != 0 {
