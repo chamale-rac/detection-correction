@@ -1,6 +1,7 @@
 # Error Detection and Correction
 
-> ⚠️ Lab report (First Part): [submissions/redes-lab2-1ra.pdf](submissions/redes-lab2-1ra.pdf)
+> ⚠️ Lab report (First Part): [submissions/redes-lab2-1ra.pdf](submissions/redes-lab2-1ra.pdf) <br>
+> 🌐 Lab report (Second Part): [submissions/redes-lab2-2da.pdf](submissions/redes-lab2-2da.pdf)
 
 <p align="center">
   <br>
