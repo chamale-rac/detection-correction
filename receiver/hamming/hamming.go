@@ -38,6 +38,7 @@ func DecodeHamming(encoded string, n, m, batchPos int) (string, error) {
 			syndrome ^= (i + 1)
 		}
 	}
+	
 
 	// If syndrome is not zero, there is an error at the position `syndrome - 1`
 	if syndrome > 0 {
@@ -63,6 +64,66 @@ func DecodeHamming(encoded string, n, m, batchPos int) (string, error) {
 	}
 
 	return string(originalData), nil
+}
+
+func DecodeHammingCount(encoded string, n, m, batchPos int) (string, error,int){
+	// n: total length of the encoded message
+	// m: length of the data part
+	// batchPos: position in the batch (used to get specific part if encoded is a batch)
+
+	// If the length of encoded message does not match the expected length, return an error
+	if len(encoded) != n {
+		return "", errors.New("invalid encoded message length"),0
+	}
+
+	// Calculate the number of parity bits (p)
+	// Number of parity bits p satisfies the equation: 2^p >= m + p + 1
+	p := 0
+	for (1 << p) < m+p+1 {
+		p++
+	}
+
+	// Find the positions of the parity bits
+	parityPositions := make([]int, p)
+	for i := 0; i < p; i++ {
+		parityPositions[i] = (1 << i) - 1
+	}
+
+	// Calculate the parity bits from the encoded message
+	syndrome := 0
+	for i := 0; i < n; i++ {
+		if encoded[i] == '1' {
+			syndrome ^= (i + 1)
+		}
+	}
+	
+	var errorCount int
+
+	// If syndrome is not zero, there is an error at the position `syndrome - 1`
+	if syndrome > 0 {
+		errorPos := syndrome - 1
+		if errorPos < n {
+			errorCount++
+			// Print the error position errorPos + batchPos
+			fmt.Printf("Error at position %d\n", errorPos+batchPos+1)
+			encoded = encoded[:errorPos] + string(flipBit(rune(encoded[errorPos]))) + encoded[errorPos+1:]
+		} else {
+			return "", errors.New("syndrome indicates an error position outside the encoded message"),0
+		}
+	}
+
+	// Extract the original data bits
+	originalData := make([]rune, 0, m)
+	parityIndex := 0
+	for i := 0; i < n; i++ {
+		if parityIndex < len(parityPositions) && i == parityPositions[parityIndex] {
+			parityIndex++
+		} else {
+			originalData = append(originalData, rune(encoded[i]))
+		}
+	}
+
+	return string(originalData), nil, errorCount
 }
 
 // flipBit flips a bit from '0' to '1' or '1' to '0'

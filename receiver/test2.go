@@ -4,13 +4,13 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
+	hamming "receiver/hamming" // Adjust the import path as necessary
 	"strconv"
-	crc32 "receiver/crc32" // Adjust the import path as necessary
 )
 
 func main() {
     // Paths to input and output CSV files
-    inputFilePath := "../tests/test_cases_crc32.csv"
+    inputFilePath := "../tests/test_cases_hamming.csv"
     outputFilePath := "../results/results.csv"
 
     // Open the input CSV file
@@ -40,57 +40,70 @@ func main() {
 
     // Write the header to the output CSV file
     writer := csv.NewWriter(outputFile)
-    writer.Write([]string{"Error Rate", "Length", "Original", "Encoded", "Noisy", "Has Errors", "Verification Result"})
+    writer.Write([]string{"Error Rate", "Length", "Errors", "Precision", "Detected Errors"})
 
-    // Process each test case
-    for i, record := range records[1:] { // Skip the header row
+    for i, record := range records[1:] { 
         if len(record) != 6 {
             fmt.Printf("Skipping record on line %d: wrong number of fields\n", i+2)
             continue
         }
 
-        errorRate := record[0]
-        length := record[1]
-        original := record[2]
-        encoded := record[3]
-        noisy := record[4]
-        hasErrors, _ := strconv.ParseBool(record[5])
-		// print type of hasErrors
+        rate := record[0] // 1/10, 1/100, 1/1000 per bit
+        length := record[1] // 2^1, 2^2 ... 2^10
+        original := record[2] // Original message (ASCII)
+        // encoded := record[3] // Encoded message (Hamming code)
+        noisy := record[4] // Binary message with errors
 
-		fmt.Printf("............................................\n")
-		fmt.Printf("Type of hasErrors: %v\n", hasErrors)
+	    var finalDecodedBinaryMessage string
+        var detectedErrors int // Errors the hamming code detected
+        var n, m int = 7,4
 
-        // Verify the noisy message using CRC32
-        generator := "100000100110000010001110110110111"
-        success, _ := crc32.VerifyCRCAndReturnMessage(noisy, generator)
+        for i := 0; i < len(noisy); i += n {
+            if i+n > len(noisy) {
+                fmt.Println("❌ Error decoding message: Incomplete block")
+                fmt.Println("Check you are using the same (n, m) values as the sender.")
+                fmt.Println("Also check you are using Hamming code and not other error correction codes.")
+                return
+            }
 
-		fmt.Printf("Success: %v\n", success)
+            decodedBinaryMessage, err, count := hamming.DecodeHammingCount(noisy[i:i+n], n, m, i)
+            if err != nil {
+                fmt.Println("❌ Error decoding message:", err)
+                return
+            }
+            detectedErrors += count
+            finalDecodedBinaryMessage += decodedBinaryMessage
+        }
 
-        // Determine the verification result
-        verificationResult := "Pass"
-		// if it has errors and success is true, we fail
-		if hasErrors && success {
-			verificationResult = "Fail"
-		}
-		// if it doesn't have errors and success is false, we fail
-		if !hasErrors && !success {
-			verificationResult = "Fail"
-		}
+           var decodedMessage string = decodeMessage(finalDecodedBinaryMessage) // Decoded message (ASCII)
 
-        // Write the results to the output CSV file
-        writer.Write([]string{
-            errorRate,
-            length,
-            original,
-            encoded,
-            noisy,
-            record[5], // Has Errors
-            verificationResult,
-        })
+        var errorCount int = countErrors(original, decodedMessage)
+
+        // Calculate total errors
+        var totalErrors int = errorCount + detectedErrors
+
+        // Calculate precision using total errors
+        var precision float64 = 1 - (float64(totalErrors) / float64(len(original)))
+
+        writer.Write([]string{rate, length, fmt.Sprintf("%d", errorCount), fmt.Sprintf("%.4f", precision), fmt.Sprintf("%d", detectedErrors)})
     }
 
     writer.Flush()
     fmt.Println("Results saved to", outputFilePath)
+}
+
+func countErrors(original, decoded string) int {    
+    errors := 0
+    for i := 0; i < len(original) && i < len(decoded); i++ {
+        if original[i] != decoded[i] {
+            errors++
+        }
+    }
+    // Account for any additional characters in the longer string
+    errors += abs(len(original) - len(decoded))
+
+    println(errors)
+    return errors
 }
 
 // Decode message from binary ASCII

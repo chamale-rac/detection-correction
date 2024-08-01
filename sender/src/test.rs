@@ -1,4 +1,5 @@
 use crate::crc32;
+use crate::hamming;
 use csv::Writer;
 use rand::Rng;
 use std::env;
@@ -60,6 +61,85 @@ pub fn generate_test_cases() {
     println!("Automated Test Completed. Results saved to {}.", file_path);
 }
 
+pub fn generate_hamming_test_cases() {
+    use hamming::*;
+
+    env::set_var("RUST_BACKTRACE", "1");
+    use std::fs::OpenOptions;
+
+    let file_path = "../../tests/test_cases_hamming.csv";
+    let file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .open(file_path)
+        .expect("Failed to open file");
+
+    let mut wtr = Writer::from_writer(file);
+
+    println!("Automated Test Started...");
+
+    let error_rates = [0.1, 0.2, 0.3, 0.4, 0.5];
+    let bit_lengths = (1..=10).map(|x| 2_usize.pow(x)).collect::<Vec<_>>(); // 2,4,8,16,32,64
+
+    wtr.write_record(&[
+        "Error Rate",
+        "Length",
+        "Original",
+        "Encoded",
+        "Noisy",
+        "Errors",
+    ])
+    .expect("Failed to write header");
+
+    let n = 7; // Number of parity bits
+    let m = 4; // Number of data bits
+
+    for &error_rate in &error_rates {
+        for &length in &bit_lengths {
+            let message = generate_random_message(length);
+            let binary_message = encode_message(&message);
+
+            let padded_binary_message = if binary_message.len() % m != 0 {
+                println!("Alert: The message length is not a multiple of m.");
+                let padded_message = pad_message(binary_message.clone(), m);
+                println!("- The padded message is:\n{}", padded_message);
+                padded_message
+            } else {
+                binary_message.clone()
+            };
+
+            let mut complete_hamming_code = String::new();
+            for i in 0..padded_binary_message.len() / m {
+                let block = &padded_binary_message[i * m..(i + 1) * m];
+                let hamming_code = generate_hamming_code(block, n - m);
+                complete_hamming_code.push_str(&hamming_code);
+            }
+
+            // size of original message
+            println!("Length: {}", message.len());
+
+            // size of encoded message
+            println!("Encoded Length: {}", complete_hamming_code.len());
+
+            let (noisy_message, error_count) = apply_noise(&complete_hamming_code, error_rate);
+
+            wtr.write_record(&[
+                &error_rate.to_string(),
+                &message.len().to_string(),
+                &message,
+                &complete_hamming_code,
+                &noisy_message, // What the receiver will get
+                &error_count.to_string(),
+            ])
+            .expect("Failed to write record");
+        }
+    }
+
+    wtr.flush().expect("Failed to flush writer");
+
+    println!("Automated Test Completed. Results saved to {}.", file_path);
+}
+
 // Presentation Layer: Encode message to binary ASCII
 fn encode_message(message: &str) -> String {
     message
@@ -69,17 +149,21 @@ fn encode_message(message: &str) -> String {
         .concat()
 }
 
-// Modify the apply_noise function to return a tuple (noisy_message, has_errors)
-fn apply_noise(message: &str, error_rate: f64) -> (String, bool) {
-    let mut noisy_message = message.to_string();
-    let mut has_errors = false;
-    for i in 0..message.len() {
+fn apply_noise(message: &str, error_rate: f64) -> (String, i32) {
+    let mut noisy_message = String::new();
+    let mut error_count = 0;
+
+    for bit in message.chars() {
         if rand::random::<f64>() < error_rate {
-            noisy_message.replace_range(i..=i, if &message[i..=i] == "0" { "1" } else { "0" });
-            has_errors = true;
+            let flipped_bit = if bit == '0' { '1' } else { '0' };
+            noisy_message.push(flipped_bit);
+            error_count += 1;
+        } else {
+            noisy_message.push(bit);
         }
     }
-    (noisy_message, has_errors)
+
+    (noisy_message, error_count)
 }
 
 fn get_error_rate() -> f64 {

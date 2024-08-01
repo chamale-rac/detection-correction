@@ -36,7 +36,8 @@ fn main() {
         match choice.as_str() {
             "hamming" => run_hamming(),
             "crc32" => run_crc32(),
-            "crc32_test" => hamming_test(),
+            "crc32_test" => crc32_test(),
+            "hamming_test" => hamming_test(),
             _ => {
                 eprintln!("Invalid choice: {}. Use 'hamming' or 'crc32'.", choice);
             }
@@ -44,9 +45,14 @@ fn main() {
     }
 }
 
-fn hamming_test() {
+fn crc32_test() {
     use test::generate_test_cases;
     generate_test_cases();
+}
+
+fn hamming_test() {
+    use test::generate_hamming_test_cases;
+    generate_hamming_test_cases();
 }
 
 fn run_crc32() {
